@@ -4,9 +4,19 @@ from scipy.ndimage import gaussian_filter
 from skimage import exposure
 import concurrent.futures
 import time
+import os
 
 # --- SETTINGS ---
-input_file = "Autosave.tif"
+
+# --- Request input folder path from user ---
+folder_path = input("📁 Enter the folder containing 'Autosave.tif': ").strip()
+input_file = os.path.join(folder_path, "Autosave.tif")
+
+if not os.path.isfile(input_file):
+    raise FileNotFoundError(f"❌ Could not find {input_file}")
+
+print(f"✅ Using input file: {input_file}")
+
 bg_kernel = 151
 thresh_sigma = 3.0
 stretch_strength = 10.0
