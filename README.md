@@ -68,15 +68,31 @@ From a terminal:
 python combined.py
 ```
 
-You will be prompted to enter the folder containing `Autosave.tif`:
+After launching, the script opens a **file selection window** that allows you to choose the stacked TIFF file.
 
-```text
-📁 Enter the folder containing 'Autosave.tif':
-```
+#### File Selection
 
-* Enter the **folder path**, not the file path.
-* The script automatically locates `Autosave.tif`.
-* If the file is missing, execution stops with an error.
+* A graphical dialog appears prompting you to select a `.tif` file.
+* Select the **stacked output from DeepSkyStacker** (typically `Autosave.tif`).
+* Only TIFF files are accepted.
+
+The script will:
+
+* Load the selected TIFF at full precision
+* Validate format and bit depth
+* Automatically proceed with processing
+
+If no file is selected, or if the file is invalid, execution stops with an error message.
+
+---
+
+### Notes
+
+* The file **does not need to be named `Autosave.tif`**, but it must be:
+
+  * A 16-bit TIFF
+  * Linear (not stretched)
+* RGB is preferred, but grayscale files are supported and converted automatically.
 
 ---
 
@@ -229,3 +245,6 @@ Key goals:
 4. Export final JPEG using GIMP 3
 
 ---
+| Raw image | Stacked images | Final |
+|-----------|---------|-------|
+| ![Raw](images/simple_photo_1.jpg) | ![Enhanced](images/stacked_1.jpg)| ![Final](images/final_star_enhanced_rgb16_1.jpg)|
