@@ -250,15 +250,20 @@ else:
     )
     enhanced_stars = np.clip(star_map * adaptive_boost, 0, 1)
 
-enhanced_result = np.clip(starless + enhanced_stars, 0, 1)
+print("🎨 Applying asinh stretch to STARS ONLY...")
 
-print("🎨 Applying asinh stretch...")
-stretched_result = stretch(enhanced_result, stretch_strength)
+# Stretch stars only
+stretched_stars = stretch(enhanced_stars, stretch_strength)
 
-# Optional mild sharpening with Gaussian blur (smoother)
-blur = cv2.GaussianBlur(stretched_result, (0, 0), sigmaX=1.5)
-sharpened = cv2.addWeighted(stretched_result, 1.2, blur, -0.2, 0)
-sharpened = np.clip(sharpened / (np.max(sharpened) + 1e-8), 0, 1)
+# Recombine with ORIGINAL background
+stretched_result = np.clip(starless + stretched_stars, 0, 1)
+
+# Optional very mild sharpening (safe for background)
+blur = cv2.GaussianBlur(stretched_result, (0, 0), sigmaX=1.2)
+sharpened = cv2.addWeighted(stretched_result, 1.1, blur, -0.1, 0)
+
+# ❌ REMOVE global normalization (this is critical)
+sharpened = np.clip(sharpened, 0, 1)
 
 # Convert grayscale → RGB if needed
 if not is_color:
