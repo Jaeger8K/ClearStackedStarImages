@@ -268,8 +268,20 @@ else:
 
 # --- Save final outputs ---
 print("💾 Saving final enhanced images...")
-cv2.imwrite("final_star_enhanced_rgb16.tif",
-            (rgb_result * 65535).astype(np.uint16))
+# --- Save output next to input file ---
+output_dir = os.path.dirname(input_file)
+output_path = os.path.join(
+    output_dir,
+    "final_star_enhanced_rgb16.tif"
+)
+
+cv2.imwrite(
+    output_path,
+    (rgb_result * 65535).astype(np.uint16)
+)
+
+print(f"💾 Saved output to:\n{output_path}")
+
 
 print("\n✅ Done!")
 print("   • final_star_enhanced_rgb16.tif  (16-bit RGB, linear)")
