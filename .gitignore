@@ -1,4 +1,7 @@
-# Ignore all TIFF image files
+# Ignore all image files
 *.tif
 *.tiff
+*.jpg
+*.jpeg
+*.png
 added the option to give the path of the Autosave.tif file during run time as user input.

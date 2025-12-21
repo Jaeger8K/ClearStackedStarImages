@@ -8,7 +8,7 @@ This repository documents my end-to-end workflow for processing night sky images
 
 1. Capture multiple star images using a smartphone
 2. Stack images using DeepSkyStacker → `Autosave.tif`
-3. Enhance stars and background using `combined.py` → `final_star_enhanced_rgb16.tif`
+3. Enhance stars and background using `AstroStakos.py` → `final_star_enhanced_rgb16.tif`
 4. Perform final adjustments and export using GIMP 3
 
 Each step is designed to preserve faint stars, avoid harsh artifacts, and maintain natural star shapes and colors.
@@ -42,9 +42,9 @@ This file is the sole input for the Python processing stage.
 
 ---
 
-## 3. Star Enhancement with `combined.py`
+## 3. Star Enhancement with `AstroStakos.py`
 
-`combined.py` is a custom Python script that performs background extraction, star detection, adaptive star enhancement, and contrast stretching on the stacked image.
+`AstroStakos.py` is a custom Python script that performs background extraction, star detection, adaptive star enhancement, and contrast stretching on the stacked image.
 
 ### 3.1 Input Requirements
 
@@ -65,7 +65,7 @@ This file is the sole input for the Python processing stage.
 From a terminal:
 
 ```bash
-python combined.py
+python AstroStakos.py
 ```
 
 After launching, the script opens a **file selection window** that allows you to choose the stacked TIFF file.
@@ -96,7 +96,7 @@ If no file is selected, or if the file is invalid, execution stops with an error
 
 ---
 
-### 3.3 Processing Stages in `combined.py`
+### 3.3 Processing Stages in `AstroStakos.py`
 
 #### a. Image Loading and Normalization
 
@@ -241,7 +241,7 @@ Key goals:
 
 1. Capture star images on a phone
 2. Stack images in DeepSkyStacker → `Autosave.tif`
-3. Process with `combined.py` → `final_star_enhanced_rgb16.tif`
+3. Process with `AstroStakos.py` → `final_star_enhanced_rgb16.tif`
 4. Export final JPEG using GIMP 3
 
 ---
