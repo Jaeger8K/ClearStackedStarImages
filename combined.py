@@ -3,16 +3,30 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from skimage import exposure
 import concurrent.futures
+import tkinter as tk
+from tkinter import filedialog, messagebox
 import time
 import os
 
 # --- SETTINGS ---
 
-# --- Request input folder path from user ---
-folder_path = input("📁 Enter the folder containing 'Autosave.tif': ").strip()
-input_file = os.path.join(folder_path, "Autosave.tif")
+# --- Simple UI for file selection ---
+root = tk.Tk()
+root.withdraw()  # Hide main Tk window
+
+input_file = filedialog.askopenfilename(
+    title="Select Autosave.tif",
+    filetypes=[("TIFF files", "*.tif *.tiff")]
+)
+
+if not input_file:
+    raise RuntimeError("❌ No file selected.")
 
 if not os.path.isfile(input_file):
+    messagebox.showerror(
+        "File Not Found",
+        f"Could not find:\n{input_file}"
+    )
     raise FileNotFoundError(f"❌ Could not find {input_file}")
 
 print(f"✅ Using input file: {input_file}")
