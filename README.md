@@ -247,8 +247,8 @@ Key goals:
 > Below are example images processed from data captured at my residence within the city of Patras, demonstrating the pipeline’s performance under typical urban light-pollution conditions.
 
 ---
-| Raw image |  Final |
-|-----------|---------|-------|
-| ![Raw](images/simple_image_1.jpg) |  ![Final](images/final_star_enhanced_rgb16_1.jpg)|
-| ![Raw](images/simple_image_2.jpg) |  ![Final](images/final_star_enhanced_rgb16_2.jpg)|
-| ![Raw](images/simple_image_3.jpg) |  ![Final](images/final_star_enhanced_rgb16_3.jpg)|
+| Raw image | Final |
+|-----------|-------|
+| ![Raw](images/simple_image_1.jpg) | ![Final](images/final_star_enhanced_rgb16_1.jpg) |
+| ![Raw](images/simple_image_2.jpg) | ![Final](images/final_star_enhanced_rgb16_2.jpg) |
+| ![Raw](images/simple_image_3.jpg) | ![Final](images/final_star_enhanced_rgb16_3.jpg) |
