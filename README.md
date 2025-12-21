@@ -249,6 +249,6 @@ Key goals:
 ---
 | Raw image |  Final |
 |-----------|---------|-------|
-| ![Raw](images/simple_photo_1.jpg) |  ![Final](images/final_star_enhanced_rgb16_1.jpg)|
-| ![Raw](images/simple_photo_2.jpg) |  ![Final](images/final_star_enhanced_rgb16_2.jpg)|
-| ![Raw](images/simple_photo_3.jpg) |  ![Final](images/final_star_enhanced_rgb16_3.jpg)|
+| ![Raw](images/simple_image_1.jpg) |  ![Final](images/final_star_enhanced_rgb16_1.jpg)|
+| ![Raw](images/simple_image_2.jpg) |  ![Final](images/final_star_enhanced_rgb16_2.jpg)|
+| ![Raw](images/simple_image_3.jpg) |  ![Final](images/final_star_enhanced_rgb16_3.jpg)|
