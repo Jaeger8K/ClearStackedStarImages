@@ -244,7 +244,11 @@ Key goals:
 3. Process with `AstroStakos.py` → `final_star_enhanced_rgb16.tif`
 4. Export final JPEG using GIMP 3
 
+> Below are example images processed from data captured at my residence within the city of Patras, demonstrating the pipeline’s performance under typical urban light-pollution conditions.
+
 ---
-| Raw image | Stacked images | Final |
+| Raw image |  Final |
 |-----------|---------|-------|
-| ![Raw](images/simple_photo_1.jpg) | ![Enhanced](images/stacked_1.jpg)| ![Final](images/final_star_enhanced_rgb16_1.jpg)|
+| ![Raw](images/simple_photo_1.jpg) |  ![Final](images/final_star_enhanced_rgb16_1.jpg)|
+| ![Raw](images/simple_photo_2.jpg) |  ![Final](images/final_star_enhanced_rgb16_2.jpg)|
+| ![Raw](images/simple_photo_3.jpg) |  ![Final](images/final_star_enhanced_rgb16_3.jpg)|
