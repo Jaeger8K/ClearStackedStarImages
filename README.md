@@ -1,82 +1,200 @@
-Here’s a clean, README-style outline you can drop straight into your Git project. It explains the **end-to-end workflow** without going too deep into implementation details, while still accurately reflecting what your script does.
+# Smartphone Astrophotography Processing Pipeline
+
+This repository documents my end-to-end workflow for processing night sky images captured with a smartphone. The pipeline combines image stacking, a custom Python-based enhancement script, and final manual editing using open-source tools to produce clean, detailed star images.
 
 ---
 
-## Image Processing Workflow (Phone Astrophotography)
+## Overview of the Workflow
 
-This project documents my workflow for processing and enhancing star images captured with a smartphone. The pipeline combines stacking, custom Python-based enhancement, and final export using open-source tools.
+1. Capture multiple star images using a smartphone
+2. Stack images using DeepSkyStacker → `Autosave.tif`
+3. Enhance stars and background using `combined.py` → `final_star_enhanced_rgb16.tif`
+4. Perform final adjustments and export using GIMP 3
+
+Each step is designed to preserve faint stars, avoid harsh artifacts, and maintain natural star shapes and colors.
 
 ---
 
-### 1. Image Capture (Input)
+## 1. Image Capture (Input)
 
 * Images are captured using a smartphone mounted on a tripod.
-* Multiple exposures of the night sky are taken to improve signal-to-noise ratio.
-* The individual frames are later stacked to create a single high-quality image.
+* Multiple exposures of the same star field are taken.
+* The goal is to increase signal-to-noise ratio through stacking rather than heavy single-frame processing.
 
 ---
 
-### 2. Stacking with DeepSkyStacker
+## 2. Image Stacking with DeepSkyStacker
 
-* I use **DeepSkyStacker (DSS)** to align and stack the individual phone images.
-* DSS handles:
+* **DeepSkyStacker (DSS)** is used to:
 
-  * Star alignment
-  * Noise reduction through stacking
-  * Output in a high bit-depth format
-* The stacked result is saved as a **16-bit `Autosave.tif`** file.
+  * Align individual frames
+  * Stack them to reduce noise
+  * Preserve faint star detail
+* The stacked output is saved as a **linear, 16-bit TIFF**.
 
-**Output:**
+**Required output filename:**
 
 ```
 Autosave.tif
 ```
 
+This file is the sole input for the Python processing stage.
+
 ---
 
-### 3. Star Enhancement Pipeline (Python Script)
+## 3. Star Enhancement with `combined.py`
 
-* The stacked `Autosave.tif` is processed using the provided Python script (`combined.py`).
-* The script performs a full star-field enhancement pipeline, including:
+`combined.py` is a custom Python script that performs background extraction, star detection, adaptive star enhancement, and contrast stretching on the stacked image.
 
-  * Background modeling using overlapping tiles with smooth blending
-  * Star detection using high-pass filtering on the luminance channel
-  * Creation of a soft, shared star mask to preserve star shapes
-  * Separation of stars and background (starless image)
-  * Adaptive enhancement that boosts dim stars more than bright ones
-  * Asinh (arcsinh) stretching for astrophotography-friendly contrast
-  * Mild sharpening for clarity without harsh artifacts
-* The script preserves color balance for RGB images and supports grayscale inputs.
+### 3.1 Input Requirements
 
-**How it’s run:**
+* File name: `Autosave.tif`
+* Format:
+
+  * 16-bit TIFF
+  * Linear (not stretched)
+* Color:
+
+  * RGB preferred
+  * Grayscale supported (converted to RGB automatically)
+
+---
+
+### 3.2 Running the Script
+
+From a terminal:
 
 ```bash
 python combined.py
 ```
 
-* You will be prompted to enter the folder containing `Autosave.tif`.
+You will be prompted to enter the folder containing `Autosave.tif`:
 
-**Output:**
+```text
+📁 Enter the folder containing 'Autosave.tif':
+```
+
+* Enter the **folder path**, not the file path.
+* The script automatically locates `Autosave.tif`.
+* If the file is missing, execution stops with an error.
+
+---
+
+### 3.3 Processing Stages in `combined.py`
+
+#### a. Image Loading and Normalization
+
+* Loads the TIFF at full precision.
+* Detects RGB vs grayscale input.
+* Normalizes pixel values to floating point (`0.0 – 1.0`) for processing.
+
+---
+
+#### b. Luminance-Based Star Detection
+
+* A luminance channel is computed from RGB data.
+* Stars are detected using **high-pass filtering**:
+
+  * Small Gaussian blur minus large Gaussian blur
+* A statistical threshold distinguishes stars from background noise.
+* A **soft star mask** is created using dilation and Gaussian smoothing.
+
+The star mask is computed **once** and reused for all color channels to prevent color misalignment.
+
+---
+
+#### c. Background Modeling with Overlapping Tiles
+
+* The image is divided into large, overlapping tiles.
+* Each tile:
+
+  * Models the background using Gaussian smoothing
+  * Uses cosine-based blending at edges
+* Overlapping regions are blended smoothly into a single background model.
+
+This approach avoids:
+
+* Tile seams
+* Gradient banding
+* Over-subtraction artifacts
+
+---
+
+#### d. Star and Background Separation
+
+For each color channel:
+
+* The background model is subtracted.
+* Star signal is extracted using the soft star mask.
+* This produces:
+
+  * A background
+  * A star map
+  * A starless image
+
+Separating stars from the background allows targeted enhancement without damaging the sky background.
+
+---
+
+#### e. Adaptive Star Enhancement
+
+* Star brightness is enhanced using a **luminosity-aware approach**:
+
+  * Dim stars receive a stronger boost
+  * Bright stars are enhanced conservatively
+* Color ratios are preserved to maintain realistic star colors.
+* This avoids blown highlights while improving faint star visibility.
+
+---
+
+#### f. Contrast Stretching
+
+* An **arcsinh (asinh) stretch** is applied.
+* This stretch is commonly used in astrophotography because it:
+
+  * Enhances faint details
+  * Preserves bright star cores
+* Stretch strength is configurable in the script.
+
+---
+
+#### g. Mild Sharpening
+
+* A light sharpening pass improves star definition.
+* Parameters are intentionally conservative to avoid halos or ringing.
+
+---
+
+### 3.4 Script Output
+
+The script produces a single output file:
 
 ```
 final_star_enhanced_rgb16.tif
 ```
 
-This output is a **16-bit linear RGB TIFF**, suitable for further manual editing.
+**Output characteristics:**
+
+* 16-bit per channel
+* RGB
+* Enhanced and stretched
+* Suitable for final editing
+
+No JPEG is generated at this stage by design.
 
 ---
 
-### 4. Final Export with GIMP 3
+## 4. Final Editing and Export (GIMP 3)
 
-* The enhanced 16-bit TIFF is opened in **GIMP 3**.
-* Final adjustments may include:
+* The enhanced TIFF is opened in **GIMP 3**.
+* Optional final adjustments:
 
-  * Minor curves or levels tweaks
-  * Color balance refinement
+  * Curves / levels
+  * Color balance
   * Cropping or rotation
-* The final image is exported as a **JPEG** for sharing or publishing.
+* The final image is exported as a JPEG for sharing or publishing.
 
-**Final Output:**
+**Final output:**
 
 ```
 final_image.jpg
@@ -84,21 +202,30 @@ final_image.jpg
 
 ---
 
-### Summary
+## Design Goals
 
-**Pipeline overview:**
+This pipeline is optimized for **smartphone astrophotography**, where:
 
-1. Capture star images on a phone
-2. Stack images in DeepSkyStacker → `Autosave.tif`
-3. Enhance stars with custom Python script → `final_star_enhanced_rgb16.tif`
-4. Export final JPEG using GIMP 3
+* Noise levels are relatively high
+* Stars are small and easily distorted
+* Faint detail is easily lost
 
-This workflow prioritizes preserving natural star shapes, boosting faint stars, and maintaining color accuracy while working entirely with open-source tools.
+Key goals:
+
+* Preserve circular star shapes
+* Enhance faint stars without blowing out bright ones
+* Avoid harsh background subtraction artifacts
+* Maintain accurate color balance
 
 ---
 
-If you want, I can:
+## Summary
 
-* Rewrite this to be more **casual** or more **technical**
-* Add a **Requirements / Dependencies** section
-* Add **example images** or command output snippets
+**Complete pipeline:**
+
+1. Capture star images on a phone
+2. Stack images in DeepSkyStacker → `Autosave.tif`
+3. Process with `combined.py` → `final_star_enhanced_rgb16.tif`
+4. Export final JPEG using GIMP 3
+
+---
