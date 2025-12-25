@@ -63,6 +63,55 @@ def load_and_normalize_image(filepath):
     return img
 
 
+def remove_hot_pixels(img, threshold_sigma=8.0):
+    """
+    Remove single-pixel hot pixels using median filtering.
+    Works on both grayscale and RGB images.
+    Enhanced to handle stubborn red hot pixels.
+    """
+    if img.ndim == 2:
+        median = cv2.medianBlur(img, 3)
+        diff = img - median
+        sigma = np.std(diff)
+        mask = diff > (threshold_sigma * sigma)
+        img = img.copy()
+        img[mask] = median[mask]
+        return img
+
+    # Color image - process each channel independently
+    cleaned = img.copy()
+    
+    for c in range(3):
+        channel = img[..., c]
+        median = cv2.medianBlur(channel, 3)
+        diff = channel - median
+        sigma = np.std(diff[diff > 0])  # Only compute sigma from positive differences
+        
+        # More aggressive threshold for red channel (BGR order: 2=Red)
+        if c == 2:  # Red channel
+            threshold = threshold_sigma * 0.7  # Lower threshold = more aggressive
+        else:
+            threshold = threshold_sigma
+        
+        mask = diff > (threshold * sigma)
+        cleaned[..., c][mask] = median[mask]
+    
+    # Additional pass: detect chromatic hot pixels (red-only spikes)
+    if img.shape[-1] == 3:
+        # BGR order: 0=Blue, 1=Green, 2=Red
+        red_excess = cleaned[..., 2] - np.maximum(cleaned[..., 0], cleaned[..., 1])
+        chromatic_threshold = 0.05  # Adjust as needed
+        
+        red_hot_mask = red_excess > chromatic_threshold
+        
+        # Apply median filter only where red is excessive
+        if np.any(red_hot_mask):
+            red_median = cv2.medianBlur(cleaned[..., 2], 3)
+            cleaned[..., 2][red_hot_mask] = red_median[red_hot_mask]
+
+    return cleaned
+
+
 def prepare_image_channels(img):
     """Prepare image channels and compute luminance"""
     is_color = img.ndim == 3
@@ -167,6 +216,13 @@ def detect_stars(channel_data, config):
     sigma_hp = np.std(hp)
     threshold_value = config.THRESH_SIGMA * sigma_hp
     star_mask_binary = hp > threshold_value
+
+    # Reject single-channel chromatic spikes
+    local_mean = gaussian_filter(channel_data, sigma=1.0)
+    chromatic_ratio = channel_data / (local_mean + 1e-10)
+
+    # Hot pixels usually exceed this by a lot
+    star_mask_binary &= chromatic_ratio < 2.5
     
     star_mask_binary_uint8 = star_mask_binary.astype(np.uint8)
     
@@ -176,6 +232,20 @@ def detect_stars(channel_data, config):
         kernel = np.ones((3, 3), np.uint8)
     
     star_mask_dilated = cv2.dilate(star_mask_binary_uint8, kernel, iterations=1)
+
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
+    star_mask_dilated, connectivity=8
+)
+
+    clean_mask = np.zeros_like(star_mask_dilated)
+
+    for i in range(1, num_labels):
+        area = stats[i, cv2.CC_STAT_AREA]
+        if area >= 3:  # stars are never 1–2 pixels
+            clean_mask[labels == i] = 1
+
+    star_mask_dilated = clean_mask
+
     
     # Create soft mask with Gaussian falloff
     star_mask = gaussian_filter(star_mask_dilated.astype(np.float32), sigma=1.5)
@@ -282,26 +352,36 @@ def convert_to_rgb(image, is_color):
 
 # --- MAIN PIPELINE ---
 def process_all_channels(img, luminance, config):
-    """Process all channels using shared star mask"""
+    """Process all channels using shared star mask with chromatic gating"""
     print("🔍 Detecting stars from luminance channel...")
     _, _, _, _, common_star_mask = process_channel_improved(luminance, config)
-    
+
     c = img.shape[-1]
     backgrounds, stars, starlesses, results = [], [], [], []
-    
+
     for i in range(c):
-        print(f"🧠 Processing channel {i+1}/{c} with shared star mask...")
-        bg, sm, sl, res, _ = process_channel_improved(img[..., i], config, star_mask_ref=common_star_mask)
+        print(f"🧠 Processing channel {i+1}/{c} with gated star mask...")
+
+        # Gate star mask by channel signal to suppress chromatic hot pixels
+        gated_star_mask = common_star_mask * (img[..., i] > 0.01)
+
+        bg, sm, sl, res, _ = process_channel_improved(
+            img[..., i],
+            config,
+            star_mask_ref=gated_star_mask
+        )
+
         backgrounds.append(bg)
         stars.append(sm)
         starlesses.append(sl)
         results.append(res)
-    
+
+    # ⬇️ THIS PART IS CRITICAL ⬇️
     background = np.stack(backgrounds, axis=-1)
-    star_map = np.stack(stars, axis=-1)
-    starless = np.stack(starlesses, axis=-1)
-    result = np.stack(results, axis=-1)
-    
+    star_map   = np.stack(stars, axis=-1)
+    starless   = np.stack(starlesses, axis=-1)
+    result     = np.stack(results, axis=-1)
+
     return background, star_map, starless, result
 
 
@@ -333,7 +413,12 @@ def main():
     print(f"Input file: {input_file}")
     
     img = load_and_normalize_image(input_file)
+
+    print("🧹 Removing hot pixels...")
+    img = remove_hot_pixels(img, threshold_sigma=8.0)
+
     img, luminance, is_color, (h, w, c) = prepare_image_channels(img)
+
     
     # Process channels
     background, star_map, starless, result = process_all_channels(img, luminance, config)
