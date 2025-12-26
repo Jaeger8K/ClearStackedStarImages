@@ -1,0 +1,47 @@
+import cv2
+import numpy as np
+import os
+import tkinter as tk
+from tkinter import filedialog, messagebox
+
+
+def select_input_file():
+    root = tk.Tk()
+    root.withdraw()
+
+    path = filedialog.askopenfilename(
+        title="Select Autosave.tif",
+        filetypes=[("TIFF files", "*.tif *.tiff")]
+    )
+
+    if not path:
+        # User cancelled → clean exit
+        return None
+
+    if not os.path.isfile(path):
+        messagebox.showerror("Error", "Selected file does not exist")
+        return None
+
+    return path
+
+
+
+def load_image(filepath):
+    img = cv2.imread(filepath, cv2.IMREAD_UNCHANGED)
+    if img is None:
+        raise FileNotFoundError(filepath)
+
+    img = img.astype(np.float32)
+    if img.max() > 1.5:
+        img /= 65535.0
+
+    return img
+
+
+def save_output(rgb_result, input_file):
+    out = os.path.join(
+        os.path.dirname(input_file),
+        "final_star_enhanced_rgb16.tif"
+    )
+    cv2.imwrite(out, (rgb_result * 65535).astype("uint16"))
+    return out
