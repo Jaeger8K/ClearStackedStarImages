@@ -2,7 +2,7 @@ import os
 import string
 import sys
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from pathlib import Path
 from PIL import Image, ExifTags
 from PIL import Image, ImageTk
@@ -14,6 +14,13 @@ class FileExplorer(tk.Tk):
 
         self.title("Astro File Explorer")
         self.geometry("1400x700")
+
+        # Toolbar at the top
+        toolbar = ttk.Frame(self)
+        toolbar.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        
+        run_stakos_btn = ttk.Button(toolbar, text="Run AstroStakos", command=self.run_astrostakos)
+        run_stakos_btn.pack(side=tk.LEFT, padx=5)
 
         # Three-panel layout
         self.paned = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
@@ -68,6 +75,27 @@ class FileExplorer(tk.Tk):
         self.current_path = None
 
         self.load_roots()
+
+    # ---------- ASTROSTAKOS ----------
+    def run_astrostakos(self):
+        """Run AstroStakos.py script"""
+        import subprocess
+        try:
+            # Try to find AstroStakos.py in the same directory as this script
+            script_dir = Path(__file__).parent
+            astrostakos_path = script_dir / "AstroStakos.py"
+            
+            if astrostakos_path.exists():
+                subprocess.Popen([sys.executable, str(astrostakos_path)])
+            else:
+                # Try current working directory
+                astrostakos_path = Path("AstroStakos.py")
+                if astrostakos_path.exists():
+                    subprocess.Popen([sys.executable, str(astrostakos_path)])
+                else:
+                    tk.messagebox.showerror("Error", "AstroStakos.py not found!")
+        except Exception as e:
+            tk.messagebox.showerror("Error", f"Failed to run AstroStakos:\n{e}")
 
     # ---------- HELPERS----------
 
