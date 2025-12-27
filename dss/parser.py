@@ -2,7 +2,7 @@ from pathlib import Path
 from .image_props import get_image_properties
 
 
-SUPPORTED_EXTS = [".tif", ".tiff", ".fits", ".fit", ".jpg", ".jpeg", ".png"]
+SUPPORTED_EXTS = [".tif", ".tiff", ".fits", ".fit", ".jpg", ".jpeg", ".png", ".dng"]
 
 
 def parse_dss_processed_images(folder: Path):
@@ -16,13 +16,6 @@ def parse_dss_processed_images(folder: Path):
     """
     frame_properties = []
     zero_star_frames = 0
-
-    stacked_files = [
-        f for f in folder.iterdir()
-        if f.suffix.lower() in (".tif", ".tiff")
-        and ("autosave" in f.name.lower() or "stack" in f.name.lower())
-    ]
-    no_stacked_images_found = not stacked_files
 
     for info_file in folder.glob("*.info.txt"):
         image_file = _find_matching_image(folder, info_file)
@@ -40,7 +33,7 @@ def parse_dss_processed_images(folder: Path):
 
         frame_properties.append(props)
 
-    return frame_properties, zero_star_frames, no_stacked_images_found
+    return frame_properties, zero_star_frames
 
 
 def _find_matching_image(folder: Path, info_file: Path):

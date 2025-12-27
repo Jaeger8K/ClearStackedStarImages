@@ -43,12 +43,12 @@ def load_image(filepath):
     return img
 
 
-def save_output(rgb_result, input_file):
-    out = os.path.join(
-        os.path.dirname(input_file),
-        "final_star_enhanced_rgb16.tif"
-    )
+def save_output(rgb_result, input_file, num_stars):
+    # Better descriptive filename
+    base_name = os.path.splitext(os.path.basename(input_file))[0]
+    out_name = f"{base_name}_stars_{num_stars}_enhanced.tif"
+    out_path = os.path.join(os.path.dirname(input_file), out_name)
 
     rgb_result = np.clip(rgb_result, 0, 1)
-    cv2.imwrite(out, (rgb_result * 65535).astype(np.uint16))
-    return out
+    cv2.imwrite(out_path, (rgb_result * 65535).astype(np.uint16))
+    return out_path

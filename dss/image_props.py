@@ -1,146 +1,199 @@
-from PIL import Image, ExifTags
-
-
-from PIL import Image, ExifTags
+import exifread  # Make sure this is imported at the top
+from pathlib import Path
 
 def get_image_properties(img_path):
     """
     Extract extensive image properties from an image file.
-
-    Returns dict with:
-    Width, Height, Format, Exposure, ISO, Device, F-stop, Flash,
-    Focal Length, White Balance, Metering Mode, Exposure Program,
-    DateTimeOriginal, GPSInfo, and more if available.
+    Works with both standard images and DNG files.
     """
     props = {}
-
-    # Mapping EXIF tag names for quick access
-    TAGS = ExifTags.TAGS
-
+    img_path = Path(img_path)
+    
     try:
-        with Image.open(img_path) as img:
-            props["Width"], props["Height"] = img.size
-            props["Format"] = img.format
-
-            exif = img._getexif()
-            if not exif:
-                return props
-
-            exif_data = {TAGS.get(k, k): v for k, v in exif.items()}
-
-            # Exposure Time
-            if "ExposureTime" in exif_data:
-                exp = exif_data["ExposureTime"]
-                if isinstance(exp, tuple):
-                    props["Exposure"] = round(exp[0] / exp[1], 6)
-                else:
-                    props["Exposure"] = float(exp)
-
-            # ISO Speed
-            if "ISOSpeedRatings" in exif_data:
-                props["ISO"] = exif_data["ISOSpeedRatings"]
-
-            # Camera Model
-            if "Model" in exif_data:
-                props["Device"] = exif_data["Model"]
-
-            # F-stop (Aperture)
-            if "FNumber" in exif_data:
-                fnum = exif_data["FNumber"]
-                if isinstance(fnum, tuple):
-                    props["F-stop"] = round(fnum[0] / fnum[1], 2)
-                else:
-                    props["F-stop"] = float(fnum)
-
-            # Flash Fired
-            if "Flash" in exif_data:
-                flash_val = exif_data["Flash"]
-                flash_desc = {
-                    0: "Flash did not fire",
-                    1: "Flash fired",
-                    5: "Strobe return light not detected",
-                    7: "Strobe return light detected",
-                    9: "Flash fired, compulsory flash mode",
-                    13: "Flash fired, compulsory flash mode, return light not detected",
-                    15: "Flash fired, compulsory flash mode, return light detected",
-                    16: "Flash did not fire, compulsory flash mode",
-                    24: "Flash did not fire, auto mode",
-                    25: "Flash fired, auto mode",
-                    29: "Flash fired, auto mode, return light not detected",
-                    31: "Flash fired, auto mode, return light detected",
-                    32: "No flash function",
-                    65: "Flash fired, red-eye reduction mode",
-                    69: "Flash fired, red-eye reduction mode, return light not detected",
-                    71: "Flash fired, red-eye reduction mode, return light detected",
-                    73: "Flash fired, compulsory flash mode, red-eye reduction mode",
-                    77: "Flash fired, compulsory flash mode, red-eye reduction mode, return light not detected",
-                    79: "Flash fired, compulsory flash mode, red-eye reduction mode, return light detected",
-                    89: "Flash fired, auto mode, red-eye reduction mode",
-                    93: "Flash fired, auto mode, return light not detected, red-eye reduction mode",
-                    95: "Flash fired, auto mode, return light detected, red-eye reduction mode"
+        with open(img_path, 'rb') as f:
+            tags = exifread.process_file(f, details=False)
+            
+            # For DNG files, check Image tags first, then EXIF tags
+            if img_path.suffix.lower() == '.dng':
+                # DNG stores most data in Image tags
+                prefix = 'Image '
+            else:
+                # Standard images use EXIF tags
+                prefix = 'EXIF '
+            
+            # Dimensions (DNG uses Image ImageWidth/ImageLength)
+            if 'Image ImageWidth' in tags:
+                props['Width'] = int(str(tags['Image ImageWidth']))
+            if 'Image ImageLength' in tags:
+                props['Height'] = int(str(tags['Image ImageLength']))
+            
+            # Camera info
+            if 'Image Make' in tags:
+                props['Make'] = str(tags['Image Make']).strip()
+            if 'Image Model' in tags:
+                props['Device'] = str(tags['Image Model']).strip()
+            
+            # Try multiple possible tag names for exposure settings
+            exposure_tags = ['Image ExposureTime', 'EXIF ExposureTime']
+            for tag in exposure_tags:
+                if tag in tags:
+                    exp = str(tags[tag])
+                    props['Exposure'] = exp + 's' if not exp.endswith('s') else exp
+                    break
+            
+            # Aperture (F-number)
+            fnumber_tags = ['Image FNumber', 'EXIF FNumber']
+            for tag in fnumber_tags:
+                if tag in tags:
+                    fnum = str(tags[tag])
+                    if '/' in fnum:
+                        try:
+                            num, den = fnum.split('/')
+                            props['Aperture'] = f"f/{float(num)/float(den):.1f}"
+                        except:
+                            props['Aperture'] = f"f/{fnum}"
+                    else:
+                        props['Aperture'] = f"f/{fnum}"
+                    break
+            
+            # ISO
+            iso_tags = ['Image ISOSpeedRatings', 'EXIF ISOSpeedRatings']
+            for tag in iso_tags:
+                if tag in tags:
+                    props['ISO'] = str(tags[tag])
+                    break
+            
+            # Focal length
+            focal_tags = ['Image FocalLength', 'EXIF FocalLength']
+            for tag in focal_tags:
+                if tag in tags:
+                    fl = str(tags[tag])
+                    if '/' in fl:
+                        try:
+                            num, den = fl.split('/')
+                            props['Focal Length'] = f"{float(num)/float(den):.1f}mm"
+                        except:
+                            props['Focal Length'] = f"{fl}mm"
+                    else:
+                        props['Focal Length'] = f"{fl}mm"
+                    break
+            
+            # Date/Time
+            date_tags = ['Image DateTimeOriginal', 'EXIF DateTimeOriginal', 'Image DateTime']
+            for tag in date_tags:
+                if tag in tags:
+                    props['Date Taken'] = str(tags[tag])
+                    break
+            
+            # Orientation
+            if 'Image Orientation' in tags:
+                orient = str(tags['Image Orientation'])
+                orientation_map = {
+                    'Horizontal (normal)': 'Normal',
+                    'Rotated 90 CW': '90° Clockwise',
+                    'Rotated 180': '180°',
+                    'Rotated 90 CCW': '90° Counter-Clockwise'
                 }
-                props["Flash"] = flash_desc.get(flash_val, f"Unknown ({flash_val})")
+                props['Orientation'] = orientation_map.get(orient, orient)
+            
+            # Additional DNG-specific properties from your debug output
+            if img_path.suffix.lower() == '.dng':
+                props['Format'] = 'DNG'
+                props['Is RAW'] = True
+                
+                # Bits per sample
+                if 'Image BitsPerSample' in tags:
+                    props['Bits Per Sample'] = str(tags['Image BitsPerSample'])
+                
+                # Black level
+                if 'Image BlackLevel' in tags:
+                    props['Black Level'] = str(tags['Image BlackLevel'])
+                
+                # CFA Pattern
+                if 'Image CFAPattern' in tags:
+                    cfa = str(tags['Image CFAPattern'])
+                    cfa_map = {'[1, 0, 2, 1]': 'RGGB', '[0, 1, 1, 2]': 'GRBG', 
+                              '[2, 1, 1, 0]': 'BGGR', '[1, 2, 0, 1]': 'GBRG'}
+                    props['Bayer Pattern'] = cfa_map.get(cfa, cfa)
+                
+                # Compression
+                if 'Image Compression' in tags:
+                    props['Compression'] = str(tags['Image Compression'])
+                
+                # Software
+                if 'Image Software' in tags:
+                    props['Software'] = str(tags['Image Software'])
+                
+                # Image Description
+                if 'Image ImageDescription' in tags:
+                    desc = str(tags['Image ImageDescription']).strip()
+                    if desc:
+                        props['Description'] = desc
+                
+                # Copyright
+                if 'Image Copyright' in tags:
+                    copyright_text = str(tags['Image Copyright']).strip()
+                    if copyright_text:
+                        props['Copyright'] = copyright_text
+                
+                # Resolution
+                if 'Image XResolution' in tags and 'Image YResolution' in tags:
+                    x_res = str(tags['Image XResolution'])
+                    y_res = str(tags['Image YResolution'])
+                    props['Resolution'] = f"{x_res} x {y_res} DPI"
+            
+            else:
+                # For non-DNG files
+                props['Format'] = img_path.suffix.upper().replace('.', '')
+                props['Is RAW'] = False
+            
+            # File info
+            props['Filename'] = img_path.name
+            props['File Size'] = f"{img_path.stat().st_size / 1024 / 1024:.2f} MB"
+            
+    except Exception as e:
+        print(f"Error reading {img_path}: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    return props
 
-            # Focal Length (in mm)
-            if "FocalLength" in exif_data:
-                fl = exif_data["FocalLength"]
-                if isinstance(fl, tuple):
-                    props["Focal Length"] = round(fl[0] / fl[1], 2)
-                else:
-                    props["Focal Length"] = float(fl)
 
-            # White Balance
-            if "WhiteBalance" in exif_data:
-                wb = exif_data["WhiteBalance"]
-                wb_desc = {0: "Auto", 1: "Manual"}
-                props["White Balance"] = wb_desc.get(wb, f"Unknown ({wb})")
-
-            # Metering Mode
-            if "MeteringMode" in exif_data:
-                mm = exif_data["MeteringMode"]
-                mm_desc = {
-                    0: "Unknown",
-                    1: "Average",
-                    2: "Center-weighted average",
-                    3: "Spot",
-                    4: "Multi-spot",
-                    5: "Pattern",
-                    6: "Partial",
-                    255: "Other"
-                }
-                props["Metering Mode"] = mm_desc.get(mm, f"Unknown ({mm})")
-
-            # Exposure Program
-            if "ExposureProgram" in exif_data:
-                ep = exif_data["ExposureProgram"]
-                ep_desc = {
-                    0: "Not defined",
-                    1: "Manual",
-                    2: "Normal program",
-                    3: "Aperture priority",
-                    4: "Shutter priority",
-                    5: "Creative program",
-                    6: "Action program",
-                    7: "Portrait mode",
-                    8: "Landscape mode"
-                }
-                props["Exposure Program"] = ep_desc.get(ep, f"Unknown ({ep})")
-
-            # Date and time original
-            if "DateTimeOriginal" in exif_data:
-                props["Date Taken"] = exif_data["DateTimeOriginal"]
-
-            # GPS Info (if any)
-            if "GPSInfo" in exif_data:
-                gps_info = exif_data["GPSInfo"]
-                # Decode GPS tags into human-readable form
-                gps_tags = {}
-                for key in gps_info.keys():
-                    name = ExifTags.GPSTAGS.get(key, key)
-                    gps_tags[name] = gps_info[key]
-                props["GPSInfo"] = gps_tags
-
-    except Exception:
-        pass
-
+def get_detailed_dng_properties(img_path):
+    """
+    Get very detailed DNG properties including camera-specific tags
+    """
+    props = {}
+    img_path = Path(img_path)
+    
+    try:
+        with open(img_path, 'rb') as f:
+            tags = exifread.process_file(f, details=False)
+            
+            # Basic properties
+            basic_props = get_image_properties(img_path)
+            props.update(basic_props)
+            
+            # Add all DNG-specific tags (0xC6xx series)
+            dng_tags = {}
+            for tag_name in tags.keys():
+                if 'Tag 0x' in tag_name:
+                    dng_tags[tag_name] = str(tags[tag_name])
+            
+            if dng_tags:
+                props['DNG Specific Tags'] = dng_tags
+            
+            # Add all other tags for debugging
+            all_tags = {}
+            for tag_name in sorted(tags.keys()):
+                # Skip very long values
+                value_str = str(tags[tag_name])
+                if len(value_str) < 200:
+                    all_tags[tag_name] = value_str
+            
+            props['All Tags'] = all_tags
+            
+    except Exception as e:
+        print(f"Error in detailed read: {e}")
+    
     return props

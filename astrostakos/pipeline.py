@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.ndimage import label
 from .config import Config
 from .io import load_image, save_output, select_input_file
 from .preprocessing import remove_hot_pixels, prepare_channels
@@ -20,9 +21,11 @@ def run(input_file=None, config=None):
     img, luminance, is_color = prepare_channels(img)
     h, w, c = img.shape
 
-    # 🔍 shared luminance star mask
-    background_lum = estimate_background_tiled(luminance, config)
+    # Star detection
     star_mask = detect_stars(luminance, config)
+
+    # Count individual stars
+    labeled_stars, num_stars = label(star_mask)
 
     backgrounds = []
     stars = []
@@ -50,4 +53,4 @@ def run(input_file=None, config=None):
     result = np.clip(starless + stretched, 0, 1)
     result = sharpen(result)
 
-    return save_output(result, input_file)
+    return save_output(result, input_file, num_stars)

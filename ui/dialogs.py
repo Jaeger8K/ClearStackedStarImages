@@ -1,5 +1,5 @@
 from tkinter import messagebox
-from astrostakos import run, Config
+from astrostakos import run
 
 
 def run_astrostakos():

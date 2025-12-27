@@ -34,7 +34,7 @@ class FolderSummary(ttk.Frame):
         no_stacked = len(dss_outputs) == 0
 
         # Parse DSS processed frames info
-        frame_props, zero_star_frames, no_stacked_images_found = parse_dss_processed_images(folder)
+        frame_props, zero_star_frames = parse_dss_processed_images(folder)
 
         # Frame count summary
         if frame_props:
@@ -68,25 +68,28 @@ class FolderSummary(ttk.Frame):
             self.text.insert(tk.END, "\n📷 Sample processed frame properties:\n")
             sample = frame_props[0]
 
-            # Define keys to show in desired order
+            # Define keys to show in desired order - updated for DNG files
             keys_to_show = [
                 "Filename",
+                "Device",           # Camera model
+                "Make",             # Camera brand
                 "Exposure",
                 "ISO",
-                "Device",
-                "Gain",
-                "Stars",
+                "Aperture",         # Changed from "F-stop"
+                "Focal Length",
                 "Width",
                 "Height",
                 "Format",
-                "F-stop",
-                "Flash",
-                "Focal Length",
-                "White Balance",
-                "Metering Mode",
-                "Exposure Program",
                 "Date Taken",
-                "GPSInfo",
+                "Orientation",      # New - shows rotation info
+                "Bits Per Sample",  # New - bit depth
+                "Bayer Pattern",    # New - CFA pattern
+                "Black Level",      # New - important for astro
+                "Compression",      # New
+                "Resolution",       # New
+                "File Size",        # New
+                "Copyright",        # New
+                "Description",      # New        # New - confirms it's RAW
             ]
 
             for key in keys_to_show:
