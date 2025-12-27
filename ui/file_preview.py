@@ -6,7 +6,6 @@ import numpy as np
 from PIL import Image, ImageTk
 from PIL import Image, ImageTk
 
-
 class FilePreview(ttk.Frame):
     def __init__(self, master):
         super().__init__(master)
