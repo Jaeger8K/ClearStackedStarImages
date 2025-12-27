@@ -3,6 +3,7 @@ import string
 import tkinter as tk
 from tkinter import ttk
 from pathlib import Path
+import re
 
 
 class FolderTree(ttk.Frame):
@@ -22,9 +23,25 @@ class FolderTree(ttk.Frame):
 
         self._load_roots()
 
+    def _sort_key(self, path):
+        """
+        Create a sort key for natural sorting (handles numbers correctly).
+        Example: "folder10" comes after "folder2"
+        """
+        name = path.name.lower()
+        
+        # Split name into text and numbers for natural sorting
+        def convert(text):
+            return int(text) if text.isdigit() else text.lower()
+        
+        return [convert(c) for c in re.split(r'(\d+)', name)]
+
     def _load_roots(self):
         self.tree.delete(*self.tree.get_children())
-        for root in self._get_roots():
+        roots = list(self._get_roots())
+        roots.sort(key=lambda x: self._sort_key(x))
+        
+        for root in roots:
             node = self.tree.insert("", "end", text=str(root), values=[str(root)])
             self._insert_dummy(node)
 
@@ -47,10 +64,30 @@ class FolderTree(ttk.Frame):
         self.tree.delete(*self.tree.get_children(node))
 
         try:
-            for p in sorted(path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
-                child = self.tree.insert(node, "end", text=p.name, values=[str(p)])
+            # Separate folders and files
+            folders = []
+            files = []
+            
+            for p in path.iterdir():
                 if p.is_dir():
-                    self._insert_dummy(child)
+                    folders.append(p)
+                else:
+                    files.append(p)
+            
+            # Sort folders with natural sorting
+            folders.sort(key=lambda x: self._sort_key(x))
+            
+            # Sort files with natural sorting
+            files.sort(key=lambda x: self._sort_key(x))
+            
+            # Insert folders first, then files
+            for p in folders:
+                child = self.tree.insert(node, "end", text=p.name, values=[str(p)])
+                self._insert_dummy(child)
+            
+            for p in files:
+                self.tree.insert(node, "end", text=p.name, values=[str(p)])
+                
         except PermissionError:
             pass
 

@@ -11,9 +11,6 @@ class FilePreview(ttk.Frame):
     def __init__(self, master):
         super().__init__(master)
 
-        label = ttk.Label(self, text="File Preview", font=("Arial", 12, "bold"))
-        label.pack(pady=5)
-
         self.image_label = ttk.Label(self)
         self.text = tk.Text(self, wrap="word")
 

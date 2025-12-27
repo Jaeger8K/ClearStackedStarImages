@@ -9,13 +9,6 @@ class FolderSummary(ttk.Frame):
     def __init__(self, master):
         super().__init__(master)
 
-        label = ttk.Label(
-            self,
-            text="Folder Summary",
-            font=("Arial", 12, "bold")
-        )
-        label.pack(pady=5)
-
         self.text = tk.Text(self, wrap="word")
         self.text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
